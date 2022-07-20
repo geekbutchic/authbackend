@@ -4,6 +4,10 @@ const bcrypt = require("bcryptjs");
 const { uuid } = require("uuidv4");
 const { blogsDB } = require("../mongo");
 
+router.get("/hello-auth", (req, res) => {
+  res.json({ message: "Hello from auth" });
+});
+
 const createUser = async (username, passwordHash) => {
   try {
     const collection = await blogsDB().collection("users");
@@ -45,13 +49,18 @@ router.post("/login-user", async (req, res) => {
       username: req.body.username,
     });
     const match = await bcrypt.compare(req.body.password, user.password);
-    res
+    if (match) {
+     res
     .status(200)
-    .json({ success : match })
+    .json({ success: true });
+    return;
+    }
+    res
+    .json({ success : false})
   } catch (e) {
     res
     .status(500)
-    .json({ message : `Failed to Login ${e}, success : false`})
+    .json({ message: `Failed to Login ${e}`, success : false });
   }
 });
 
