@@ -25,21 +25,34 @@ router.post("/register-user", async (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
     const saltRounds = 5;
-    const salt = await bcrypt.genSalt(saltRounds)
-    const hash = await bcrypt.hash(password, salt)
+    const salt = await bcrypt.genSalt(saltRounds);
+    const hash = await bcrypt.hash(password, salt);
     const userSaveSuccess = await createUser(username, hash);
     res
     .status(200)
-    .json({success: userSaveSuccess})
+    .json({ success: userSaveSuccess });
   } catch (e) {
     res
-    .status(500)
-    .json({ message: `Failed to Save User ${e}`, success: false })
+      .status(500)
+      .json({ message: `Failed to Save User ${e}`, success: false });
   }
 });
 
 router.post("/login-user", async (req, res) => {
-    
-})
+  try {
+    const collection = await blogsDB().collection("users");
+    const user = await collection.findOne({
+      username: req.body.username,
+    });
+    const match = await bcrypt.compare(req.body.password, user.password);
+    res
+    .status(200)
+    .json({ success : match })
+  } catch (e) {
+    res
+    .status(500)
+    .json({ message : `Failed to Login ${e}, success : false`})
+  }
+});
 
 module.exports = router;

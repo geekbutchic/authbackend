@@ -123,11 +123,12 @@
         const userSaveSuccess = await createUser(username, hash);
     * Respond at the end of the route with a json success object
       * res.json({success: userSaveSuccess}). ✅
+
   * Create a new async POST route "/auth/login-user" and implement the following:
     * Add mongodb code to fetch a user from the database where the username matches the incoming username from req.body
       * const user = await collection.findOne({
           username: req.body.username
-        })
+        }) ✅
     * Add the following code to check the users stored password with the req.body password:
       * const match = await bcrypt.compare(req.body.password, user.password);
-    * Implement functionality at the end of the route to respond a json object. If the passwords match, then the object should have "success": true; if the passwords do not match, the object should have "success": false.
+    * Implement functionality at the end of the route to respond a json object. If the passwords match, then the object should have "success": true; if the passwords do not match, the object should have "success": false. ✅
