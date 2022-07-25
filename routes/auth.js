@@ -1,8 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
+const dotenv = require("dotenv");
+const jwt = require("jsonwebtoken");
 const { uuid } = require("uuidv4");
 const { blogsDB } = require("../mongo");
+
+dotenv.config();
 
 router.get("/hello-auth", (req, res) => {
   res.json({ message: "Hello from auth" });
@@ -32,35 +36,60 @@ router.post("/register-user", async (req, res) => {
     const salt = await bcrypt.genSalt(saltRounds);
     const hash = await bcrypt.hash(password, salt);
     const userSaveSuccess = await createUser(username, hash);
-    res
-    .status(200)
-    .json({ success: userSaveSuccess });
+    res.status({ success: userSaveSuccess }).status(200);
   } catch (e) {
-    res
-      .status(500)
-      .json({ message: `Failed to Save User ${e}`, success: false });
+    console.log(e);
+    res.json({ success: e }).status(500);
   }
 });
 
 router.post("/login-user", async (req, res) => {
   try {
+    const username = req.body.username;
+    const password = req.body.password;
     const collection = await blogsDB().collection("users");
     const user = await collection.findOne({
-      username: req.body.username,
+      username: username,
     });
-    const match = await bcrypt.compare(req.body.password, user.password);
-    if (match) {
-     res
-    .status(200)
-    .json({ success: true });
-    return;
+    if (!user) {
+      res.json({ success: false }).status(204);
+      return;
     }
-    res
-    .json({ success : false})
-  } catch (e) {
-    res
-    .status(500)
-    .json({ message: `Failed to Login ${e}`, success : false });
+    const match = await bcrypt.compare(password, user.password);
+    if (match) {
+      const jwtSecretKey = process.env.JWT_SECRET_KEY;
+      const data = {
+        time: new Date(),
+        userId: user.uid,
+        // Note: Double check this line of code to be sure that user.uid is coming from your fetched mongo user
+      };
+      const token = jwt.sign(data, jwtSecretKey);
+      res.json({ success: match, token: token }).status(200);
+      return;
+    }
+    res.json({ success: false }).status(204);
+  } catch (error) {
+    res.json({ success: error }).status(500);
+  }
+});
+
+router.get("/auth/validate-token", (req, res) => {
+  const tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
+  const jwtSecretKey = process.env.JWT_SECRET_KEY;
+
+  try {
+    const token = req.header(tokenHeaderKey);
+
+    const verified = jwt.verify(token, jwtSecretKey);
+    if (verified) {
+      return res.json({ success: true });
+    } else {
+      // Access Denied
+      throw Error("Access Denied");
+    }
+  } catch (error) {
+    // Access Denied
+    return res.status(401).json({ success: true, message: String(error) });
   }
 });
 
